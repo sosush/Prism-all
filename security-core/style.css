@@ -1,0 +1,107 @@
+/* ---------- GLOBAL ---------- */
+body{
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: linear-gradient(135deg,#eef2ff,#f9fafb);
+  margin:0;
+  padding:20px;
+}
+
+h2{
+  text-align:center;
+  margin-bottom:20px;
+  color:#1e3a8a;
+  letter-spacing:1px;
+}
+
+/* ---------- TABLE CONTAINER ---------- */
+.table-container{
+  overflow-x:auto;
+  padding:10px;
+}
+
+/* ---------- TABLE ---------- */
+table{
+  border-collapse: collapse;
+  margin:auto;
+  background:white;
+  border-radius:12px;
+  overflow:hidden;
+  box-shadow:0 10px 25px rgba(0,0,0,0.1);
+}
+
+/* ---------- CELLS ---------- */
+th, td{
+  border:1px solid #d1d5db;
+  padding:10px 8px;
+  text-align:center;
+  font-size:13px;
+  min-width:80px;
+  transition: all 0.2s ease;
+}
+
+/* Hover effect */
+td:hover{
+  background:#f1f5f9;
+  transform:scale(1.03);
+}
+
+/* ---------- HEADER ---------- */
+.time th{
+  background:#1e3a8a;
+  color:white;
+  font-weight:600;
+  position:sticky;
+  top:0;
+  z-index:2;
+}
+
+/* ---------- TYPE LABELS ---------- */
+.type{
+  font-weight:bold;
+  text-transform:uppercase;
+}
+
+.theory{
+  background:#e0e7ff;
+  color:#1e3a8a;
+}
+
+.lab{
+  background:#fff7ed;
+  color:#9a3412;
+}
+
+/* ---------- DAY COLUMN ---------- */
+.day{
+  background:#f3f4f6;
+  font-weight:bold;
+}
+
+/* ---------- LUNCH ---------- */
+.lunch{
+  background:#d1d5db !important;
+  font-weight:bold;
+  color:#111827;
+}
+
+/* ---------- HIGHLIGHTED SUBJECTS ---------- */
+.green{
+  background:linear-gradient(135deg,#bbf7d0,#86efac);
+  font-weight:bold;
+  color:#065f46;
+  border:1px solid #34d399;
+}
+
+/* ---------- MOBILE ---------- */
+@media(max-width:768px){
+  th, td{
+    font-size:11px;
+    padding:6px;
+  }
+}
+@media(max-width:480px){
+  th, td{
+    font-size:9px;
+    padding:4px;
+  }
+}
