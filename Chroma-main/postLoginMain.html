@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+
+    <link rel="stylesheet" href="CSS/main.css" />
+    <link rel="stylesheet" href="CSS/fireflies.css" />
+    <link rel="stylesheet" href="CSS/visualizer.css" />
+    <link rel="stylesheet" href="CSS/WebCam.css" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Tiny5&display=swap"
+      rel="stylesheet"
+    />
+
+    <title>Chroma</title>
+
+    
+  </head>
+  <body>
+    <div class="background"></div>
+    <canvas id="fireflies"></canvas>
+    <canvas id="scary-fireflies"></canvas>
+
+    <div class="ui-layer">
+      <div class="menu-overlay" id="menuOverlay">
+        <div class="close-btn" id="closeMenuBtn">X</div>
+        <ul class="menu-items">
+          <li><a href="#">Home</a></li>
+          <li><a href="#">Profile</a></li>
+          <li><a href="#" id="uploadLink">Upload Video</a></li>
+          <li><a href="#">Live Video</a></li>
+          <li><a href="loginpage.html">Log Out</a></li>
+        </ul>
+
+        <input type="file" id="videoInput" accept="video/*" style="display: none" />
+        <p id="uploadStatus" style="color: white; text-align: center; margin-top: 10px"></p>
+      </div>
+
+      <div class="header">
+        <div class="btn-menu" id="menuTrigger">menu</div>
+        <div class="btn-login"><a href="loginpage.html">Wallet</a></div>
+      </div>
+
+      <div class="header-box" style="margin-bottom: 10px">
+        <p class="heading">CHROMA</p>
+      </div>
+
+      <div class="main-content">
+        <div id="overlay">
+          <span>START</span>
+          <p>[ CLICK TO REVEAL ]</p>
+        </div>
+
+        <div class="visualizer-container" id="visualizerContainer">
+          <video id="webcam" autoplay playsinline muted></video>
+          <canvas id="visualizer" width="600" height="600"></canvas>
+        </div>
+
+        <div class="controls-container" id="controlsContainer">
+           <div style="display: flex; gap: 15px;">
+              <button id="startRecBtn" class="btn-record">Record</button>
+              <button id="stopRecBtn" class="btn-record" disabled>Stop</button>
+           </div>
+           <p id="recStatus">Ready</p>
+        </div>
+
+        <audio id="audio" src="audio/edm.mp3" crossorigin="anonymous" loop></audio>
+      </div>
+    </div>
+
+    <script src="JS/Innerfirefiles.js"></script>
+    <script src="JS/Outerfireflies.js"></script>
+    <script src="JS/visualizer.js"></script>
+    <script src="JS/webcam.js"></script>
+  </body>
+</html>

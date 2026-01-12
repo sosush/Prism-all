@@ -1,0 +1,129 @@
+/* --- Global Font Setting --- */
+body {
+    font-family: 'Tiny5', sans-serif;
+}
+
+/* --- Header Trigger Button Style --- */
+.text-button {
+    background: none;
+    border: none;
+    color: inherit;       
+    font-family: inherit; 
+    
+    /* CHANGE 1: Font size 20px (Adjust if you want it smaller/bigger) */
+    font-size: 28px;      
+    
+    cursor: pointer;
+    text-decoration: none;
+    padding: 0;
+    text-transform: none; 
+}
+
+.text-button:hover {
+    /* CHANGE 3: No underline on hover */
+    text-decoration: none; 
+    color: #ccc; 
+}
+
+/* --- The Sliding Drawer (Popup) --- */
+.chroma-side-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 300px;
+    height: 100vh;
+    background-color: rgba(20, 25, 30, 0.95);
+    border-right: 2px solid rgba(255, 255, 255, 0.2);
+    
+    /* CHANGE 4: Increased bottom padding to 100px to push Back button higher */
+    /* Top | Right | Bottom | Left */
+    padding: 40px 20px 100px 20px;
+    
+    display: flex;
+    flex-direction: column;
+    z-index: 10000;
+    
+    /* Animation: Start off-screen to the LEFT */
+    transform: translateX(-100%);
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    box-shadow: 10px 0 30px rgba(0,0,0,0.8);
+}
+
+.chroma-side-menu.active {
+    transform: translateX(0); 
+}
+
+/* --- Menu Content Styles --- */
+.menu-heading {
+    color: #fff;
+    text-align: center;
+    font-size: 32px;
+    margin-bottom: 50px;
+    letter-spacing: 2px;
+    text-transform: uppercase; /* Keeps "GAME MENU" title big */
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    margin-top: 0;
+}
+
+.menu-buttons-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* --- Pixel/Chroma Style Menu Buttons --- */
+.chroma-btn {
+    background-color: #444;
+    color: #fff;
+    font-family: 'Tiny5', sans-serif;
+    font-size: 24px;
+    padding: 15px;
+    border: 4px solid #000;
+    cursor: pointer;
+    text-align: center;
+    image-rendering: pixelated;
+    transition: all 0.2s;
+    
+    /* 3D Bevel Effect */
+    border-color: #666 #222 #222 #666; 
+}
+
+.chroma-btn:hover {
+    background-color: #555;
+    text-shadow: 0 0 5px #fff;
+}
+
+.chroma-btn:active {
+    border-color: #222 #666 #666 #222;
+    transform: translateY(2px);
+}
+
+/* Specific Style for the 'Back' Button */
+.close-btn {
+    margin-top: auto; /* Pushes button to the very bottom area */
+    background-color: #8B3A3A; /* Reddish tint */
+    border-color: #A55 #422 #422 #A55;
+}
+
+.close-btn:hover {
+    background-color: #9e4444;
+}
+
+/* --- The Backdrop (Dark Overlay) --- */
+.menu-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 9999; 
+    opacity: 0;
+    pointer-events: none; 
+    transition: opacity 0.4s ease;
+}
+
+.menu-backdrop.active {
+    opacity: 1;
+    pointer-events: all; 
+}
