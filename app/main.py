@@ -72,15 +72,18 @@ class PrismConfig:
     hrv_entropy_threshold: float = 0.25  # Lowered for noisy conditions
     
     # Moiré detection (lowered = more aggressive screen detection)
-    moire_threshold: float = 0.08  # FFT peak threshold for screen detection
+    moire_threshold: float = 0.04  # FFT peak threshold for screen detection (was 0.08)
     
     # BPM stability (anti-photo attack)
-    bpm_stability_threshold: float = 15.0  # Max std dev of BPM for "stable"
+    bpm_stability_threshold: float = 10.0  # Max std dev of BPM for "stable" (was 15.0)
     
     # Static image detection (THE KEY ANTI-PHOTO DEFENSE)
-    min_signal_variance: float = 0.5  # Minimum variance in green channel over time
+    min_signal_variance: float = 0.8  # Minimum variance in green channel over time (was 0.5)
     # Real faces: variance > 2.0 due to blood flow
-    # Photos: variance < 0.5 (static image with only camera noise)
+    # Photos/AI: variance < 0.8 (static image with only camera noise)
+    
+    # Screen replay detection (additional layer)
+    screen_color_uniformity_threshold: float = 0.15  # Screens have very uniform color patches
     
     # Fusion model weights (adjusted for hackathon - prioritize rPPG+HRV)
     weight_physics_sss: int = 15      # Reduced (glasses cause SSS issues)
@@ -661,12 +664,47 @@ class PrismEngine:
         
         result.signal_variance = round(variance, 3)
         
-        # Real faces: CV typically 0.5-3% due to blood flow
-        # Photos: CV typically < 0.1% (just sensor noise)
-        result.is_static = variance < self.config.min_signal_variance
-        result.is_alive = variance >= self.config.min_signal_variance
+        # Real faces: CV typically 1.0-3% due to blood flow
+        # Photos/AI on screen: CV typically < 0.8% (just camera/screen noise)
+        # Also check for suspiciously HIGH variance (screen flicker)
+        too_stable = variance < self.config.min_signal_variance
+        too_noisy = variance > 8.0  # Screen flicker can cause high variance but wrong pattern
+        result.is_static = too_stable or too_noisy
+        result.is_alive = not result.is_static
         
         return result
+
+    def _check_screen_texture(self, face_img: np.ndarray) -> Tuple[bool, float]:
+        """
+        Detect screen replay by analyzing texture uniformity.
+        
+        Screens displaying images have unnaturally uniform color patches
+        because of pixel rendering. Real skin has micro-texture variation.
+        
+        Returns:
+            (is_screen_like, uniformity_score)
+        """
+        if face_img is None or face_img.size == 0:
+            return False, 0.0
+        
+        # Convert to grayscale
+        gray = cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY).astype(np.float32)
+        
+        # Calculate local standard deviation using a small window
+        # Real skin: high local variation due to pores, texture
+        # Screen: low local variation (smooth pixel rendering)
+        kernel_size = 5
+        mean_local = cv2.blur(gray, (kernel_size, kernel_size))
+        sqr_mean = cv2.blur(gray ** 2, (kernel_size, kernel_size))
+        local_std = np.sqrt(np.maximum(sqr_mean - mean_local ** 2, 0))
+        
+        avg_local_std = np.mean(local_std)
+        
+        # Real skin typically has local_std > 8-12
+        # Screens/AI images typically have local_std < 6
+        is_screen_like = avg_local_std < 6.0
+        
+        return is_screen_like, round(avg_local_std, 2)
 
     # =========================================================================
     # 7. MULTI-MODAL FUSION
@@ -747,14 +785,14 @@ class PrismEngine:
         
         # 6. Moiré Penalty (negative if screen detected)
         if moire.is_screen:
-            score -= cfg.weight_moire * 3  # Triple penalty for screen detection
-            details["moire_penalty"] = -cfg.weight_moire * 3
+            score -= cfg.weight_moire * 5  # 5x penalty for screen detection (was 3x)
+            details["moire_penalty"] = -cfg.weight_moire * 5
         else:
             score += cfg.weight_moire
             details["moire_contribution"] = cfg.weight_moire
         
         # 7. BPM Stability Check (anti-photo attack)
-        # Photos produce random noise that causes BPM to jump around wildly
+        # Photos/AI produce random noise that causes BPM to jump around wildly
         # Real faces have stable, consistent heartbeats
         bpm_stability_penalty = 0
         if len(self.raw_bpm_history) >= 10:
@@ -762,8 +800,8 @@ class PrismEngine:
             details["bpm_stability_std"] = round(bpm_std, 1)
             
             if bpm_std > cfg.bpm_stability_threshold:
-                # Unstable BPM = likely photo/screen
-                bpm_stability_penalty = min(30, bpm_std - cfg.bpm_stability_threshold)
+                # Unstable BPM = likely photo/screen/AI
+                bpm_stability_penalty = min(50, (bpm_std - cfg.bpm_stability_threshold) * 2)  # 2x penalty
                 score -= bpm_stability_penalty
                 details["bpm_stability_penalty"] = round(-bpm_stability_penalty, 1)
         
@@ -774,13 +812,23 @@ class PrismEngine:
         
         if static_result.is_static:
             # CRITICAL: Static image = definitely not alive
-            # Massive penalty - photos should NEVER pass
-            score -= 50  # -50 points for static image
-            details["static_image_penalty"] = -50
+            # Massive penalty - photos/AI images should NEVER pass
+            score -= 70  # -70 points for static image (was -50)
+            details["static_image_penalty"] = -70
         elif static_result.is_alive:
-            # Bonus for showing signs of life
-            score += 15
-            details["alive_bonus"] = 15
+            # Bonus for showing signs of life (reduced to avoid false positives)
+            score += 10
+            details["alive_bonus"] = 10
+        
+        # 9. SCREEN TEXTURE CHECK (catches AI images on screens)
+        # This uses a face_img that we need to pass - store it in instance for now
+        if hasattr(self, "_last_face_img") and self._last_face_img is not None:
+            is_screen_texture, texture_score = self._check_screen_texture(self._last_face_img)
+            details["texture_uniformity"] = texture_score
+            details["screen_texture_detected"] = is_screen_texture
+            if is_screen_texture:
+                score -= 30  # Penalty for screen-like texture
+                details["screen_texture_penalty"] = -30
         
         # Normalize to 0-100
         confidence = max(0, min(100, score))
@@ -837,6 +885,9 @@ class PrismEngine:
             LivenessResult with is_human, confidence, BPM, HRV score, and details.
         """
         result = LivenessResult()
+        
+        # Store face_img for texture analysis in fusion scoring
+        self._last_face_img = face_img
         
         # 1. Update rPPG buffer with forehead green channel
         if forehead_roi is not None and forehead_roi.size > 0:
