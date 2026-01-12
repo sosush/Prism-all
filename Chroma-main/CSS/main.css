@@ -22,7 +22,7 @@ body {
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    z-index: 5;
+    z-index: 300;
 
     padding: 5px 25px;
 
@@ -67,5 +67,14 @@ body {
 }
 .btn-login a:hover {
     opacity: 0.8;          
+}
+.btn-login:active{
+    opacity: 0.6;
+}
+.btn-menu:hover {
+    opacity: 0.8;
+}
+.btn-menu:active {
+    opacity: 0.6;
 }
 
