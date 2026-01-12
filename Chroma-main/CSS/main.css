@@ -1,149 +1,105 @@
-/* --- GLOBAL RESET & FONTS --- */
+/* --- GLOBAL RESET --- */
 body {
     margin: 0;
     font-family: "Tiny5", sans-serif;
     overflow: hidden;
 }
 
-/* --- UI LAYER WRAPPER --- */
+/* --- UI WRAPPER --- */
 .ui-layer {
     position: absolute; 
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100vh;
+    top: 0; left: 0; width: 100%; height: 100vh;
     z-index: 10; 
-
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    display: flex; flex-direction: column; align-items: center;
 }
 
-/* --- HEADER STYLES --- */
+/* --- HEADER --- */
 .header {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    z-index: 300;
-    padding: 5px 25px;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 50px;
+    display: flex; flex-direction: row; justify-content: space-between; align-items: center;
+    z-index: 300; padding: 5px 25px;
+    position: fixed; top: 0; left: 0; right: 0; height: 50px;
     color: white;
     transition: opacity 0.5s ease, transform 0.5s ease;
 }
 
 .heading {
-    font-size: 86px;
-    height: 100px;
-    margin: 0;
-    margin-top: 20px;
-    color: white;
+    font-size: 86px; height: 100px; margin: 0; margin-top: 20px; color: white;
 }
 
 .header-box {
     transition: opacity 0.5s ease, transform 0.5s ease;
 }
 
-/* --- MENU BUTTONS --- */
-.btn-menu, 
-.btn-login {
-    font-size: 28px;
-}
+.btn-menu, .btn-login { font-size: 28px; }
 .btn-login a { text-decoration: none; color: inherit; }
 .btn-login a:hover { opacity: 0.8; }
-.btn-login:active { opacity: 0.6; }
 .btn-menu:hover { opacity: 0.8; }
-.btn-menu:active { opacity: 0.6; }
 
 
-/* --- MAIN CONTENT (VERTICAL STACK) --- */
+/* --- MAIN CONTENT --- */
 .main-content {
     position: relative;
     margin-top: 20px;
     width: 100%;
-    height: calc(100vh - 120px);
     
-    /* Layout: Vertical Column */
+    /* Flex-1 fills space, preventing cutoff */
+    flex: 1; 
+    min-height: 0;
+    
     display: flex;
     flex-direction: column; 
     align-items: center;
     justify-content: center;
     
     box-sizing: border-box; 
-    padding: 0 40px; 
+    padding: 0 40px 20px 40px; 
     gap: 10px; 
 }
 
 
 /* --- ROW 1: TOOLS --- */
 .first-row {
-    display: flex;
-    flex-direction: row; 
-    width: 100%;
-    flex: 1; /* Expand to fill available height */
-    
-    align-items: center;
-    justify-content: center;
-    gap: 20px; 
+    display: flex; flex-direction: row; 
+    width: 100%; flex: 1; 
+    align-items: center; justify-content: center; gap: 20px; 
 }
 
+/* Left Section: Visualizer & Button */
 .left-section {
     flex: 3; 
     min-width: 400px; 
     height: 100%;
     position: relative;
+    
+    /* CHANGED: Vertical Stack for Visualizer + Button */
     display: flex;
+    flex-direction: column; 
     justify-content: center; 
     align-items: center;    
 }
 
+/* Workspace Box (Right Side) */
 .workspace {
-    flex: 7; 
-    height: 100%; 
+    flex: 7; height: 100%; 
     background: rgba(255, 255, 255, 0.05);
     border: 2px solid rgba(59, 193, 168, 0.3);
     border-radius: 15px;
     box-shadow: 0 0 20px rgba(0,0,0,0.5);
-    
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    display: flex; justify-content: center; align-items: center;
     backdrop-filter: blur(5px);
 }
 
 
-/* --- ROW 2: BOTTOM TEXT AREA --- */
+/* --- ROW 2: BOTTOM TEXT --- */
 .second-row {
-    width: 100%;
-    height: 50px; /* Fixed height protects it from being crushed */
-    flex-shrink: 0; /* Prevents it from shrinking if screen is small */
-    
-    display: flex;
-    justify-content: center;
-    align-items: flex-start; /* Aligns text slightly higher in the box */
+    width: 100%; height: 50px; flex-shrink: 0; 
+    display: flex; justify-content: center; align-items: center;
 }
 
-
-/* --- TEXT & BUTTON STYLES --- */
-
-/* Calibration Text (UPDATED: Not Absolute Anymore) */
+/* --- TEXT & BUTTON --- */
 .calibration-text {
-    /* REMOVED: position: absolute; bottom: 30px; */
-    /* This makes it respect the flex layout so it won't overlap */
-    
-    margin: 0;
-    text-align: center;
-    font-family: "Tiny5", sans-serif;
-    font-size: 24px;
-    letter-spacing: 4px;
-    color: #3BC1A8;
-    
-    /* Keep the breathing animation */
+    margin: 0; text-align: center;
+    font-family: "Tiny5", sans-serif; font-size: 24px; letter-spacing: 4px; color: #3BC1A8;
     animation: breathe 2s infinite ease-in-out;
 }
 
@@ -153,48 +109,29 @@ body {
 }
 
 .pixel-btn {
-    font-family: "Tiny5", sans-serif;
-    font-size: 20px;
-    color: #ff0055;
-    background: transparent;
-    border: 2px solid #ff0055;
-    padding: 10px 20px;
-    cursor: pointer;
-    text-transform: uppercase;
-    transition: all 0.3s ease;
+    font-family: "Tiny5", sans-serif; font-size: 20px; color: #ff0055;
+    background: transparent; border: 2px solid #ff0055; padding: 10px 20px;
+    cursor: pointer; text-transform: uppercase; transition: all 0.3s ease;
     box-shadow: 0 0 5px #ff0055;
 }
 
 .pixel-btn:hover {
-    background: #ff0055;
-    color: white;
-    box-shadow: 0 0 15px #ff0055;
-    transform: scale(1.05);
+    background: #ff0055; color: white;
+    box-shadow: 0 0 15px #ff0055; transform: scale(1.05);
 }
 
 
-/* --- PRELOAD / HIDE / REVEAL LOGIC --- */
-
-.first-row,
-.second-row {
+/* --- VISIBILITY LOGIC --- */
+.first-row, .second-row {
     transition: opacity 1.5s ease-out, transform 1.5s ease-out, filter 1.5s ease-out;
-    opacity: 1;
-    transform: translateY(0);
-    filter: blur(0);
+    opacity: 1; transform: translateY(0); filter: blur(0);
 }
 
-/* Initially Hidden (Waiting for Start) */
 .main-content.waiting-to-start .first-row,
 .main-content.waiting-to-start .second-row {
-    opacity: 0;
-    pointer-events: none;
-    transform: scale(0.95);
-    filter: blur(10px);
+    opacity: 0; pointer-events: none; transform: scale(0.95); filter: blur(10px);
 }
 
-/* Global Hidden Utility */
 .hidden {
     display: none;
-    opacity: 0 !important;
-    pointer-events: none !important;
 }
