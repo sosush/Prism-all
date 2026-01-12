@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="CSS/main.css" />
     <link rel="stylesheet" href="CSS/fireflies.css" />
     <link rel="stylesheet" href="CSS/visualizer.css" />
+    <link rel="stylesheet" href="CSS/WebCam.css" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -18,79 +19,7 @@
 
     <title>Chroma</title>
 
-    <style>
-      /* Menu Overlay Styles */
-      .menu-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.85); /* Dark transparent background */
-        backdrop-filter: blur(10px); /* Glass effect */
-        z-index: 1000; /* Sit on top of everything */
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.4s ease;
-      }
-
-      .menu-overlay.active {
-        opacity: 1;
-        pointer-events: all;
-      }
-
-      .menu-items {
-        list-style: none;
-        text-align: center;
-        padding: 0;
-      }
-
-      .menu-items li {
-        margin: 20px 0;
-      }
-
-      .menu-items a {
-        font-family: "Tiny5", cursive;
-        font-size: 3rem;
-        color: white;
-        text-decoration: none;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        transition: color 0.3s ease, text-shadow 0.3s ease;
-      }
-
-      /* Neon Glow Effect on Hover */
-      .menu-items a:hover {
-        color: #00ffcc; /* Cyan glow */
-        text-shadow: 0 0 10px #00ffcc, 0 0 20px #00ffcc;
-      }
-
-      .close-btn {
-        position: absolute;
-        top: 30px;
-        right: 40px;
-        font-family: "Tiny5", cursive;
-        font-size: 2rem;
-        color: white;
-        cursor: pointer;
-        transition: transform 0.3s ease;
-      }
-
-      .close-btn:hover {
-        transform: scale(1.2);
-        color: #ff0055;
-      }
-
-      /* Cursor pointer for the menu trigger */
-      .btn-menu {
-        cursor: pointer;
-        z-index: 1001; /* Ensure it's clickable */
-      }
-    </style>
+    
   </head>
   <body>
     <div class="background"></div>
@@ -103,23 +32,13 @@
         <ul class="menu-items">
           <li><a href="#">Home</a></li>
           <li><a href="#">Profile</a></li>
-
           <li><a href="#" id="uploadLink">Upload Video</a></li>
-
           <li><a href="#">Live Video</a></li>
           <li><a href="loginpage.html">Log Out</a></li>
         </ul>
 
-        <input
-          type="file"
-          id="videoInput"
-          accept="video/*"
-          style="display: none"
-        />
-        <p
-          id="uploadStatus"
-          style="color: white; text-align: center; margin-top: 10px"
-        ></p>
+        <input type="file" id="videoInput" accept="video/*" style="display: none" />
+        <p id="uploadStatus" style="color: white; text-align: center; margin-top: 10px"></p>
       </div>
 
       <div class="header">
@@ -137,145 +56,26 @@
           <p>[ CLICK TO REVEAL ]</p>
         </div>
 
-        <div class="visualizer-container">
+        <div class="visualizer-container" id="visualizerContainer">
           <video id="webcam" autoplay playsinline muted></video>
           <canvas id="visualizer" width="600" height="600"></canvas>
         </div>
 
-        <audio
-          id="audio"
-          src="audio/edm.mp3"
-          crossorigin="anonymous"
-          loop
-        ></audio>
+        <div class="controls-container" id="controlsContainer">
+           <div style="display: flex; gap: 15px;">
+              <button id="startRecBtn" class="btn-record">Record</button>
+              <button id="stopRecBtn" class="btn-record" disabled>Stop</button>
+           </div>
+           <p id="recStatus">Ready</p>
+        </div>
+
+        <audio id="audio" src="audio/edm.mp3" crossorigin="anonymous" loop></audio>
       </div>
     </div>
 
     <script src="JS/Innerfirefiles.js"></script>
     <script src="JS/Outerfireflies.js"></script>
     <script src="JS/visualizer.js"></script>
-
-    <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        const menuTrigger = document.getElementById("menuTrigger");
-        const menuOverlay = document.getElementById("menuOverlay");
-        const closeMenuBtn = document.getElementById("closeMenuBtn");
-
-        // Open Menu
-        menuTrigger.addEventListener("click", () => {
-          menuOverlay.classList.add("active");
-        });
-
-        // Close Menu (Clicking X)
-        closeMenuBtn.addEventListener("click", () => {
-          menuOverlay.classList.remove("active");
-        });
-
-        // Close Menu (Clicking outside the links - optional)
-        menuOverlay.addEventListener("click", (e) => {
-          if (e.target === menuOverlay) {
-            menuOverlay.classList.remove("active");
-          }
-        });
-      });
-
-      document.addEventListener("DOMContentLoaded", () => {
-        const uploadLink = document.getElementById("uploadLink");
-        const videoInput = document.getElementById("videoInput");
-        const statusText = document.getElementById("uploadStatus");
-
-        // 1. Trigger the hidden file input when "Upload Video" is clicked
-        if (uploadLink) {
-          uploadLink.addEventListener("click", (e) => {
-            e.preventDefault();
-            // Close the menu if open (optional UX improvement)
-            const menuOverlay = document.getElementById("menuOverlay");
-            if (menuOverlay) menuOverlay.classList.remove("active"); // Adjust based on your menu logic
-
-            videoInput.click();
-          });
-        }
-
-        // 2. When a file is selected
-        if (videoInput) {
-          videoInput.addEventListener("change", function () {
-            if (this.files && this.files[0]) {
-              validateAndUpload(this.files[0]);
-            }
-          });
-        }
-
-        // 3. Validate video length (Max 9 seconds)
-        function validateAndUpload(file) {
-          const videoElement = document.createElement("video");
-          videoElement.preload = "metadata";
-
-          videoElement.onloadedmetadata = function () {
-            window.URL.revokeObjectURL(videoElement.src);
-            const duration = videoElement.duration;
-
-            if (duration > 9) {
-              alert(
-                `Video is too long (${duration.toFixed(
-                  1
-                )}s). Please upload a video under 9 seconds.`
-              );
-              videoInput.value = ""; // Reset input
-              return;
-            }
-
-            // If valid, start upload
-            uploadToBackend(file);
-          };
-
-          videoElement.src = URL.createObjectURL(file);
-        }
-
-        // 4. Send Video + Wallet + Color to Backend
-        async function uploadToBackend(file) {
-          statusText.innerText = "Uploading & Processing...";
-
-          // --- DATA SETUP ---
-          // 1. Get Wallet (assumes you saved it as 'token' or 'wallet' in login)
-          // If your login saved the token but not the address, we might need to decode it.
-          // For now, we check for a 'walletAddress' item.
-          const userWallet =
-            localStorage.getItem("walletAddress") || "0xUNKNOWN_WALLET";
-
-          // 2. Set Screen Color (You can change this logic later)
-          const screenColor = "RED";
-          // ------------------
-
-          const formData = new FormData();
-          formData.append("video", file);
-          formData.append("wallet", userWallet);
-          formData.append("screenColor", screenColor);
-
-          try {
-            // Make sure this URL matches your Spring Boot Controller
-            const response = await fetch(
-              "http://localhost:8080/api/video/upload",
-              {
-                method: "POST",
-                body: formData,
-              }
-            );
-
-            if (response.ok) {
-              const result = await response.text();
-              statusText.innerText = "Success! Frames generated.";
-              console.log("Server response:", result);
-              alert("Video Uploaded Successfully!");
-            } else {
-              statusText.innerText = "Upload failed.";
-              console.error("Server Error:", await response.text());
-            }
-          } catch (error) {
-            console.error("Network Error:", error);
-            statusText.innerText = "Error connecting to server.";
-          }
-        }
-      });
-    </script>
+    <script src="JS/webcam.js"></script>
   </body>
 </html>

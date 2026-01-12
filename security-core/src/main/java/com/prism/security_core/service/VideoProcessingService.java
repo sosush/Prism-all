@@ -1,6 +1,7 @@
 package com.prism.security_core.service;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -43,16 +44,22 @@ public class VideoProcessingService {
         Files.write(videoPath, file.getBytes());
 
         // 3. Extract Frames using FFmpeg
-        // This command scales the video to 640px wide (enhancement/normalization)
-        // and extracts 5 frames per second (-r 5)
         String framePattern = FRAMES_DIR + "frame_%03d.jpg";
 
+        // --- FIX STARTS HERE ---
+        // TODO: CHANGE THIS PATH to exactly where your ffmpeg.exe is located!
+        // Example: "C:\\Users\\Sumit\\ffmpeg\\bin\\ffmpeg.exe"
+        // Note: Use double backslashes "\\" for Windows paths.
+        String ffmpegPath = "C:\\ffmpeg\\bin\\ffmpeg.exe";
+
         ProcessBuilder pb = new ProcessBuilder(
-                "ffmpeg", "-i", videoPath.toString(),
+                ffmpegPath, // <--- Using the full path here
+                "-i", videoPath.toString(),
                 "-vf", "scale=640:-1", // ENHANCE: Resize for consistent ML input
                 "-r", "5", // Extract 5 frames per second
                 "-q:v", "2", // High Quality JPEG
                 framePattern);
+        // --- FIX ENDS HERE ---
 
         pb.redirectErrorStream(true);
         Process process = pb.start();
@@ -91,7 +98,7 @@ public class VideoProcessingService {
                             // Clean up: Delete frame image after adding to JSON
                             Files.delete(path);
 
-                        } catch (Exception e) {
+                        } catch (IOException e) {
                             e.printStackTrace();
                         }
                     });
